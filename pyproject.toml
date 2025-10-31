@@ -1,0 +1,16 @@
+[project]
+name = "omi-notes"
+version = "0.1.0"
+description = "Field Notes backend for voice-driven structured data capture"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0.0",
+    "langchain==1.0.3",
+    "langchain-openai>=0.0.2",
+    "google-api-python-client>=2.0.0",
+    "google-auth-oauthlib>=1.0.0",
+    "google-auth-httplib2>=0.1.0",
+    "python-dotenv>=1.0.0"
+]
