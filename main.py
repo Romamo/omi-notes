@@ -46,6 +46,8 @@ async def delayed_process(uid: str):
 
 async def process_buffered_transcripts(uid: str):
     """Process all buffered transcripts for a session"""
+
+    logger.info(f"Processing buffered transcripts for session: {uid}")
     if uid not in transcript_buffers:
         return
 
@@ -488,6 +490,8 @@ async def process_segments(payload: TranscriptPayload):
     session_id = payload.session_id
     uid = session_id  # For now, session_id serves as uid
 
+    logger.info(f"Processing segments for session {session_id}")
+
     # Get stored data from user-specific storage
     prompt = load_user_prompts(uid)
     credentials = load_user_tokens(uid)
@@ -653,6 +657,8 @@ async def store_sheet_api(payload: SheetPayload):
 async def receive_transcript(payload: TranscriptPayload):
     """Receive transcript segments and buffer them for delayed processing"""
     uid = payload.session_id  # For now, session_id serves as uid
+
+    logger.info(f"Received transcript for session {uid}")
 
     # Validate session has required data in user-specific storage
     prompt = load_user_prompts(uid)
