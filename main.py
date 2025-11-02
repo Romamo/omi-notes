@@ -503,7 +503,9 @@ async def process_segments(payload: TranscriptPayload):
         return
 
     all_rows = []
-    columns = ['Location', 'Date']
+    columns = [
+        # 'Location',
+        'Date']
 
     user_segments = [segment.text for segment in payload.segments]
     user_text = ' '.join(user_segments)
@@ -523,10 +525,10 @@ async def process_segments(payload: TranscriptPayload):
     # Process extracted items
     for item in result.items:
         row = []
-        row.append(payload.location or 'unknown')
+        # row.append(payload.location or 'unknown')
         row.append(datetime.now().strftime('%Y-%m-%d %H:%M'))
 
-        if len(columns) == 2:
+        if len(columns) == 1:
             columns.extend(item.model_fields.keys())
 
         # Add extracted fields
