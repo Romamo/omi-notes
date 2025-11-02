@@ -17,6 +17,11 @@ Instead of juggling clipboards, phones, or spreadsheets, just speak your observa
 
 ## Installation
 
+
+### Use Omi app
+
+https://h.omi.me/apps/01K8WEY210BJFDD7X2TZ70MVA1
+
 ### Prerequisites
 
 - Python 3.13+
