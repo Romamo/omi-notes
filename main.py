@@ -1,3 +1,4 @@
+import asyncio
 import traceback
 from datetime import datetime
 
@@ -33,6 +34,51 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import Flow
 import requests
 import argparse
+
+# Global buffers for transcript processing per session
+transcript_buffers = {}  # uid -> list of TranscriptPayload
+processing_timers = {}  # uid -> asyncio.Task
+
+async def delayed_process(uid: str):
+    """Wait 10 seconds then process buffered transcripts for a session"""
+    await asyncio.sleep(10)
+    await process_buffered_transcripts(uid)
+
+async def process_buffered_transcripts(uid: str):
+    """Process all buffered transcripts for a session"""
+    if uid not in transcript_buffers:
+        return
+
+    buffered_payloads = transcript_buffers[uid]
+    if not buffered_payloads:
+        return
+
+    # Clear the buffer
+    del transcript_buffers[uid]
+
+    # Combine all segments from all payloads
+    all_segments = []
+    location = None
+    datetime_val = None
+
+    for payload in buffered_payloads:
+        all_segments.extend(payload.segments)
+        if payload.location:
+            location = payload.location
+        if payload.datetime:
+            datetime_val = payload.datetime
+
+    # Create a combined payload
+    combined_payload = TranscriptPayload(
+        session_id=uid,
+        segments=all_segments,
+        location=location,
+        datetime=datetime_val
+    )
+
+    # Process the combined payload
+    await process_segments(combined_payload)
+
 app = FastAPI(title="Field Notes Backend")
 
 # Templates
@@ -344,19 +390,6 @@ def get_google_flow():
     )
 
 def append_to_sheet(uid, sheet_id: str, credentials: Credentials, rows: List[List[Any]], columns: Optional[List[str]] = None):
-    # """Append rows to Google Sheet"""
-    # creds = google.oauth2.credentials.Credentials(
-    #     token=credentials['token'],
-    #     refresh_token=credentials.get('refresh_token'),
-    #     token_uri=credentials.get('token_uri', 'https://oauth2.googleapis.com/token'),
-    #     client_id=GOOGLE_CLIENT_ID,
-    #     client_secret=GOOGLE_CLIENT_SECRET,
-    #     scopes=SCOPES
-    # )
-
-    # # Refresh token if needed
-    # if creds.expired and creds.refresh_token:
-    #     creds.refresh(google.auth.transport.requests.Request())
     credentials_original = credentials._make_copy()
 
     service = build('sheets', 'v4', credentials=credentials)
@@ -436,38 +469,9 @@ def list_user_sheets(credentials: Credentials) -> List[Dict[str, Any]]:
 
     return filtered_files
 
-def create_google_sheet(credentials: Dict[str, Any], title: str) -> str:
-    """Create a new Google Sheet and return its ID"""
-    # Ensure we have all required fields for token refresh
-    creds_dict = {
-        'token': credentials['token'],
-        'refresh_token': credentials.get('refresh_token'),
-        'token_uri': credentials.get('token_uri', 'https://oauth2.googleapis.com/token'),
-        'client_id': credentials.get('client_id', GOOGLE_CLIENT_ID),
-        'client_secret': credentials.get('client_secret', GOOGLE_CLIENT_SECRET),
-        'scopes': SCOPES
-    }
+def create_google_sheet(credentials: Credentials, title: str) -> str:
 
-    # Check if refresh_token is None and try to get it from the credentials
-    if creds_dict['refresh_token'] is None:
-        # For Google OAuth, if refresh_token is None, we might need to re-authenticate
-        # But for now, let's try to create the credentials without refresh_token
-        creds = google.oauth2.credentials.Credentials(
-            token=creds_dict['token'],
-            refresh_token=None,
-            token_uri=creds_dict['token_uri'],
-            client_id=creds_dict['client_id'],
-            client_secret=creds_dict['client_secret'],
-            scopes=creds_dict['scopes']
-        )
-    else:
-        creds = google.oauth2.credentials.Credentials(**creds_dict)
-
-    # Only refresh if we have a refresh token and token is expired
-    if creds.expired and creds.refresh_token:
-        creds.refresh(google.auth.transport.requests.Request())
-
-    service = build('sheets', 'v4', credentials=creds)
+    service = build('sheets', 'v4', credentials=credentials)
 
     # Create new spreadsheet
     spreadsheet = {
@@ -646,8 +650,8 @@ async def store_sheet_api(payload: SheetPayload):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/transcript")
-async def receive_transcript(payload: TranscriptPayload, background_tasks: BackgroundTasks):
-    """Receive transcript segments and process in background"""
+async def receive_transcript(payload: TranscriptPayload):
+    """Receive transcript segments and buffer them for delayed processing"""
     uid = payload.session_id  # For now, session_id serves as uid
 
     # Validate session has required data in user-specific storage
@@ -662,8 +666,18 @@ async def receive_transcript(payload: TranscriptPayload, background_tasks: Backg
     if not sheet_id:
         raise HTTPException(status_code=400, detail="No sheet ID found for session")
 
-    # Add background task
-    background_tasks.add_task(process_segments, payload)
+    # Buffer the payload
+    if uid not in transcript_buffers:
+        transcript_buffers[uid] = []
+    transcript_buffers[uid].append(payload)
+
+    # Cancel any existing timer for this session
+    if uid in processing_timers:
+        processing_timers[uid].cancel()
+
+    # Start a new 10-second timer
+    processing_timers[uid] = asyncio.create_task(delayed_process(uid))
+
     return {
         "status": "accepted",
         "segments_received": len(payload.segments)
