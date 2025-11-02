@@ -47,13 +47,14 @@ async def delayed_process(uid: str):
 async def process_buffered_transcripts(uid: str):
     """Process all buffered transcripts for a session"""
 
-    logger.info(f"Processing buffered transcripts for session: {uid}")
     if uid not in transcript_buffers:
         return
 
     buffered_payloads = transcript_buffers[uid]
     if not buffered_payloads:
         return
+
+    logger.info(f"Processing buffered transcripts for session: {uid} count:{len(buffered_payloads)}")
 
     # Clear the buffer
     del transcript_buffers[uid]
@@ -677,12 +678,9 @@ async def receive_transcript(payload: TranscriptPayload):
         transcript_buffers[uid] = []
     transcript_buffers[uid].append(payload)
 
-    # Cancel any existing timer for this session
-    if uid in processing_timers:
-        processing_timers[uid].cancel()
-
-    # Start a new 10-second timer
-    processing_timers[uid] = asyncio.create_task(delayed_process(uid))
+    # Start a new 10-second timer if not already running
+    if uid not in processing_timers or processing_timers[uid].done():
+        processing_timers[uid] = asyncio.create_task(delayed_process(uid))
 
     return {
         "status": "accepted",
