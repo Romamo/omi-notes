@@ -17,7 +17,6 @@
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
         }
         h1 {
             color: #333;
@@ -54,12 +53,17 @@
             font-weight: bold;
             color: #495057;
         }
-        .form-group input {
+        .form-group input, .form-group textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ced4da;
             border-radius: 4px;
             font-size: 16px;
+            font-family: inherit;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
         }
         .btn {
             background-color: #007bff;
@@ -138,6 +142,12 @@
         }
     </style>
     <script>
+        function showEditPromptForm() {
+            document.getElementById('options').style.display = 'none';
+            document.getElementById('edit-prompt-form').style.display = 'block';
+            loadPrompt();
+        }
+
         function showCreateForm() {
             document.getElementById('create-form').style.display = 'block';
             document.getElementById('options').style.display = 'none';
@@ -146,6 +156,7 @@
         function showOptions() {
             document.getElementById('create-form').style.display = 'none';
             document.getElementById('user-sheets').style.display = 'none';
+            document.getElementById('edit-prompt-form').style.display = 'none';
             document.getElementById('options').style.display = 'block';
         }
 
@@ -278,6 +289,50 @@
             showOptions();
         }
 
+        async function loadPrompt() {
+            try {
+                const response = await fetch(`/api/instructions?uid={{ uid }}`);
+                const data = await response.json();
+                document.getElementById('prompt-text').value = data.prompt || '';
+            } catch (error) {
+                console.error('Error loading prompt:', error);
+                alert('Error loading prompt. Please try again.');
+            }
+        }
+
+        async function savePrompt() {
+            const prompt = document.getElementById('prompt-text').value.trim();
+            if (!prompt) {
+                alert('Please enter extraction instructions');
+                return;
+            }
+
+            try {
+                const response = await fetch('/instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        uid: '{{ uid }}',
+                        prompt: prompt
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Prompt saved successfully!');
+                    loadCurrentPromptDisplay(); // Refresh the display
+                    loadFullPromptDisplay(); // Refresh the full display
+                    showOptions();
+                } else {
+                    alert('Error saving prompt. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error saving prompt:', error);
+                alert('Error saving prompt. Please try again.');
+            }
+        }
+
         async function useExistingSheet() {
             const sheetUrl = document.getElementById('sheet-url').value.trim();
             if (!sheetUrl) {
@@ -309,13 +364,59 @@
                 alert('Error storing sheet. Please try again.');
             }
         }
+        // Load and display current prompt on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            loadCurrentPromptDisplay();
+            loadFullPromptDisplay();
+        });
+
+        async function loadCurrentPromptDisplay() {
+            try {
+                const response = await fetch(`/api/instructions?uid={{ uid }}`);
+                const data = await response.json();
+                const promptText = data.prompt || 'No prompt set - click to edit';
+                const displayElement = document.getElementById('current-prompt-display');
+
+                // Show first line or truncated version
+                const firstLine = promptText.split('\n')[0];
+                const truncated = firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
+                displayElement.textContent = truncated || 'No prompt set - click to edit';
+            } catch (error) {
+                console.error('Error loading prompt display:', error);
+                document.getElementById('current-prompt-display').textContent = 'Error loading prompt - click to edit';
+            }
+        }
+
+        async function loadFullPromptDisplay() {
+            try {
+                const response = await fetch(`/api/instructions?uid={{ uid }}`);
+                const data = await response.json();
+                const promptText = data.prompt || 'No prompt set yet.';
+                document.getElementById('prompt-content').textContent = promptText;
+            } catch (error) {
+                console.error('Error loading full prompt display:', error);
+                document.getElementById('prompt-content').textContent = 'Error loading prompt.';
+            }
+        }
     </script>
 </head>
 <body>
     <div class="container">
         <h1>Google Sheets Setup</h1>
 
-        <div id="options">
+        <div id="prompt-display">
+            <h3>Current Prompt</h3>
+            <div id="prompt-content" style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 10px 0; white-space: pre-wrap; font-family: monospace; font-size: 14px;">Loading prompt...</div>
+            <button type="button" class="btn" onclick="showEditPromptForm()">Edit Prompt</button>
+            <button type="button" class="btn btn-secondary" onclick="showOptions()">Continue to Sheets Setup</button>
+        </div>
+
+        <div id="options" style="display: none;">
+            <div class="option" onclick="showEditPromptForm()">
+                <h3>✏️ Edit Prompt</h3>
+                <p id="current-prompt-display">Loading prompt...</p>
+            </div>
+
             <div class="option" onclick="showCreateForm()">
                 <h3>📄 Create New Sheet</h3>
                 <p>Create a new Google Sheet for storing your field notes data</p>
@@ -346,6 +447,16 @@
             <div id="sheets-list" class="sheets-list">
                 <!-- Content will be loaded here by JavaScript -->
             </div>
+            <button type="button" class="btn btn-secondary" onclick="showOptions()">Back</button>
+        </div>
+
+        <div id="edit-prompt-form" style="display: none;">
+            <h3>Edit Extraction Prompt</h3>
+            <div class="form-group">
+                <label for="prompt-text">Instructions:</label>
+                <textarea id="prompt-text" rows="6" placeholder="Enter your extraction instructions here..."></textarea>
+            </div>
+            <button type="button" class="btn" onclick="savePrompt()">Save Prompt</button>
             <button type="button" class="btn btn-secondary" onclick="showOptions()">Back</button>
         </div>
 

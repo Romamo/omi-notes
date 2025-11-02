@@ -1,0 +1,4 @@
+Extract the item name, width, and height from measurements.
+Translate the text to Spanish.
+Convert the units to inches.
+Calculate the area and add it to results.

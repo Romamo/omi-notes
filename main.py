@@ -194,7 +194,20 @@ def load_user_prompts(uid: str) -> str:
     file_path = get_user_file_path(uid, "prompt.txt")
     if file_path.exists():
         with open(file_path, 'r') as f:
-            return f.read().strip()
+            content = f.read().strip()
+            if content:  # Only return if there's actual content
+                return content
+
+    # If no user prompt exists, load and set default prompt
+    default_prompt_path = Path("templates/default_prompt.txt")
+    if default_prompt_path.exists():
+        with open(default_prompt_path, 'r') as f:
+            default_content = f.read().strip()
+            if default_content:
+                # Save the default prompt for the user
+                save_user_prompts(uid, default_content)
+                return default_content
+
     return ""
 
 def save_user_prompts(uid: str, prompt: str):
@@ -545,11 +558,24 @@ async def homepage():
 # API Endpoints
 
 @app.post("/instructions")
-async def store_instructions(uid: str, prompt: str):
+async def store_instructions(request: Request):
     """Store user-defined extraction prompt"""
+    data = await request.json()
+    uid = data.get('uid')
+    prompt = data.get('prompt')
+
+    if not uid or not prompt:
+        raise HTTPException(status_code=400, detail="uid and prompt are required")
+
     # Use user-specific storage
     save_user_prompts(uid, prompt)
     return {"status": "ok"}
+
+@app.get("/api/instructions")
+async def get_instructions(uid: str):
+    """Retrieve user-defined extraction prompt"""
+    prompt = load_user_prompts(uid)
+    return {"prompt": prompt}
 
 @app.get("/oauth/start")
 async def oauth_start(uid: str):
@@ -562,7 +588,7 @@ async def oauth_start(uid: str):
         access_type='offline',
         include_granted_scopes='true',
         state=uid,  # Store uid in state
-        approval_prompt='force'
+        # approval_prompt='force'
     )
     return RedirectResponse(authorization_url)
 
@@ -614,7 +640,6 @@ async def receive_transcript(payload: TranscriptPayload, background_tasks: Backg
 
     # Add background task
     background_tasks.add_task(process_segments, payload)
-
     return {
         "status": "accepted",
         "segments_received": len(payload.segments)
@@ -629,7 +654,3 @@ async def privacy_policy():
 async def terms_of_service():
     """Serve terms of service page"""
     return templates.TemplateResponse("terms.html", {"request": {}})
-#
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
