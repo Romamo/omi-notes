@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets - Field Notes Backend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .option {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .option:hover {
+            background-color: #e9ecef;
+        }
+        .option h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        .option p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .form-group {
+            margin: 20px 0;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        .back-link {
+            margin-top: 40px;
+        }
+        .back-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        #create-form {
+            display: none;
+        }
+        .sheets-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .sheet-item {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .sheet-item:hover {
+            background-color: #e9ecef;
+        }
+        .sheet-item h4 {
+            margin: 0 0 5px 0;
+            color: #495057;
+        }
+        .sheet-item p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 12px;
+        }
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            display: inline;
+            vertical-align: middle;
+        }
+    </style>
+    <script>
+        function showCreateForm() {
+            document.getElementById('create-form').style.display = 'block';
+            document.getElementById('options').style.display = 'none';
+        }
+
+        function showOptions() {
+            document.getElementById('create-form').style.display = 'none';
+            document.getElementById('user-sheets').style.display = 'none';
+            document.getElementById('options').style.display = 'block';
+        }
+
+        async function loadUserSheets() {
+            console.log('loadUserSheets called');
+            const optionsDiv = document.getElementById('options');
+            const userSheetsDiv = document.getElementById('user-sheets');
+            console.log('optionsDiv:', optionsDiv);
+            console.log('userSheetsDiv:', userSheetsDiv);
+
+            optionsDiv.style.display = 'none';
+            userSheetsDiv.style.display = 'block';
+            console.log('Set display styles');
+
+            const sheetsList = document.getElementById('sheets-list');
+            console.log('sheetsList element:', sheetsList);
+            sheetsList.innerHTML = '<div class="loader"></div><span class="loading-text">Loading your sheets...</span>';
+            console.log('Set loading HTML');
+            console.log('Current sheetsList.innerHTML:', sheetsList.innerHTML);
+
+            try {
+                console.log('Making API call...');
+                const response = await fetch(`/api/sheets?uid={{ uid }}`);
+                console.log('API response:', response);
+                const data = await response.json();
+                console.log('API data:', data);
+
+                if (data.error) {
+                    sheetsList.innerHTML = `<p>Error: ${data.error}</p>`;
+                    return;
+                }
+
+                if (data.sheets.length === 0) {
+                    sheetsList.innerHTML = '<p>No Google Sheets found. Create a new one or use an existing URL.</p>';
+                    return;
+                }
+
+                const sheetsHtml = data.sheets.slice(0, 5).map(sheet => `
+                    <div class="sheet-item" onclick="selectSheet('${sheet.id}', '${sheet.name.replace(/'/g, "\\'")}')">
+                        <h4>${sheet.name}</h4>
+                        <p>Last modified: ${new Date(sheet.modifiedTime).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+
+                sheetsList.innerHTML = sheetsHtml;
+                console.log('Set sheets HTML');
+                console.log('Sheets HTML content:', sheetsHtml);
+                console.log('Final sheetsList.innerHTML:', sheetsList.innerHTML);
+            } catch (error) {
+                console.error('Error loading sheets:', error);
+                sheetsList.innerHTML = '<p>Error loading sheets. Please try again.</p>';
+            }
+        }
+
+        async function selectSheet(sheetId, sheetName) {
+            if (confirm(`Use "${sheetName}" for storing field notes?`)) {
+                try {
+                    const response = await fetch('/api/sheet', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            session_id: '{{ uid }}',
+                            sheet_url: `https://docs.google.com/spreadsheets/d/${sheetId}`
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        alert('Sheet selected successfully! You can now use it for storing field notes.');
+                        window.location.href = '/';  // Redirect to home
+                    } else {
+                        const error = await response.json();
+                        alert('Error selecting sheet: ' + (error.detail || 'Unknown error'));
+                    }
+                } catch (error) {
+                    alert('Error selecting sheet. Please try again.');
+                }
+            }
+        }
+
+        async function createSheet() {
+            const sheetName = document.getElementById('sheet-name').value.trim();
+            if (!sheetName) {
+                alert('Please enter a sheet name');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/sheets/create?uid={{ uid }}&title=${encodeURIComponent(sheetName)}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error creating sheet: ' + data.error);
+                    return;
+                }
+
+                if (data.success) {
+                    alert('Sheet created successfully! You can now use it for storing field notes.');
+                    // Submit JSON to store the newly created sheet
+                    const storeResponse = await fetch('/api/sheet', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            session_id: '{{ uid }}',
+                            sheet_url: data.url
+                        })
+                    });
+
+                    if (storeResponse.ok) {
+                        window.location.href = '/';  // Redirect to home
+                    } else {
+                        alert('Sheet created but failed to store. Please try selecting it manually.');
+                    }
+                } else {
+                    alert('Error creating sheet: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error creating sheet. Please try again.');
+            }
+
+            // Reset form
+            document.getElementById('sheet-name').value = '';
+            showOptions();
+        }
+
+        async function useExistingSheet() {
+            const sheetUrl = document.getElementById('sheet-url').value.trim();
+            if (!sheetUrl) {
+                alert('Please enter a Google Sheets URL');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/sheet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: '{{ uid }}',
+                        sheet_url: sheetUrl
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert('Sheet stored successfully! You can now use it for storing field notes.');
+                    window.location.href = '/';  // Redirect to home
+                } else {
+                    const error = await response.json();
+                    alert('Error storing sheet: ' + (error.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error storing sheet. Please try again.');
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Google Sheets Setup</h1>
+
+        <div id="options">
+            <div class="option" onclick="showCreateForm()">
+                <h3>📄 Create New Sheet</h3>
+                <p>Create a new Google Sheet for storing your field notes data</p>
+            </div>
+
+            <div class="option" onclick="loadUserSheets()">
+                <h3>📋 Select from My Sheets</h3>
+                <p>Choose from your existing Google Sheets</p>
+            </div>
+
+            <div class="option" onclick="document.getElementById('existing-form').style.display='block'; this.style.display='none'">
+                <h3>🔗 Use Existing Sheet</h3>
+                <p>Use an existing Google Sheet by providing its URL</p>
+            </div>
+
+            <div id="existing-form" style="display: none;">
+                <div class="form-group">
+                    <label for="sheet-url">Google Sheets URL:</label>
+                    <input type="url" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/...">
+                </div>
+                <button type="button" class="btn" onclick="useExistingSheet()">Use This Sheet</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('existing-form').style.display='none'; document.querySelector('.option[onclick*=\"existing-form\"]').style.display='block'">Cancel</button>
+            </div>
+        </div>
+
+        <div id="user-sheets" style="display: none;">
+            <h3>Your Google Sheets</h3>
+            <div id="sheets-list" class="sheets-list">
+                <!-- Content will be loaded here by JavaScript -->
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="showOptions()">Back</button>
+        </div>
+
+        <div id="create-form">
+            <h3>Create New Google Sheet</h3>
+            <div class="form-group">
+                <label for="sheet-name">Sheet Name:</label>
+                <input type="text" id="sheet-name" placeholder="My Field Notes">
+            </div>
+            <button type="button" class="btn" onclick="createSheet()">Create Sheet</button>
+            <button type="button" class="btn btn-secondary" onclick="showOptions()">Back</button>
+        </div>
+
+        <div class="back-link">
+            <a href="/">< Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>

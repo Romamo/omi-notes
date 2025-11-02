@@ -1,0 +1,19 @@
+[Unit]
+Description=ominotes
+After=network.target
+
+[Service]
+User=ominotes
+Group=ominotes
+EnvironmentFile=-/home/ominotes/.env
+EnvironmentFile=-/home/ominotes/main/systemd/ominotes.ini
+WorkingDirectory=/home/ominotes/main
+ExecStart=/home/ominotes/.pyenv/shims/gunicorn www.asgi:application -w 4 -k uvicorn.workers.UvicornWorker --bind unix:${SOCK_FILE} -p ${PID_FILE} --error-logfile /var/log/ominotes/gunicorn.log --capture-output
+Restart=always
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

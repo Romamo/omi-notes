@@ -1,0 +1,24 @@
+name: Main CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deployment_rel:
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [h1]
+
+    runs-on: ${{ matrix.host }}
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: |
+          uv sync --frozen
+          uv run manage.py check
+      - run: rsync -a --delete --exclude=/.git/ --exclude=/.github/ ./ ~/main/
+      - run: echo > ~/main/restart.txt
