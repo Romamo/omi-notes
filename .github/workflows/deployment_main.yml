@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: |
-          uv sync --frozen
+          uv sync --frozen --extra=deploy
           uv run main.py
       - run: rsync -a --delete --exclude=/.git/ --exclude=/.github/ ./ ~/main/
       - run: echo > ~/main/restart.txt
