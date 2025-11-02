@@ -678,9 +678,10 @@ async def receive_transcript(payload: TranscriptPayload):
         transcript_buffers[uid] = []
     transcript_buffers[uid].append(payload)
 
-    # Start a new 10-second timer if not already running
-    if uid not in processing_timers or processing_timers[uid].done():
-        processing_timers[uid] = asyncio.create_task(delayed_process(uid))
+    # Cancel any existing timer and start a new 10-second timer
+    if uid in processing_timers and not processing_timers[uid].done():
+        processing_timers[uid].cancel()
+    processing_timers[uid] = asyncio.create_task(delayed_process(uid))
 
     return {
         "status": "accepted",
