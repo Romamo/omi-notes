@@ -578,7 +578,7 @@ async def get_instructions(uid: str):
     return {"prompt": prompt}
 
 @app.get("/oauth/start")
-async def oauth_start(uid: str):
+async def oauth_start(uid: str, force: bool = False):
     """Start Google OAuth2 flow"""
 
     # https://github.com/googleads/google-ads-python/blob/main/examples/authentication/generate_user_credentials.py
@@ -588,7 +588,7 @@ async def oauth_start(uid: str):
         access_type='offline',
         include_granted_scopes='true',
         state=uid,  # Store uid in state
-        # approval_prompt='force'
+        approval_prompt='force' if force else None
     )
     return RedirectResponse(authorization_url)
 
@@ -602,6 +602,9 @@ async def oauth_callback(code: str, state: str):
         flow.fetch_token(code=code)
     except Exception as e:
         print(e)
+
+    if not flow.credentials.refresh_token:
+        return RedirectResponse("/oauth/start?uid={}&force=true".format(uid))
 
     # Store credentials directly
     save_user_tokens(uid, flow.credentials)
