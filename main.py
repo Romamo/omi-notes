@@ -629,7 +629,7 @@ async def privacy_policy():
 async def terms_of_service():
     """Serve terms of service page"""
     return templates.TemplateResponse("terms.html", {"request": {}})
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+#
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

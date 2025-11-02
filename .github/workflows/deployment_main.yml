@@ -19,6 +19,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: |
           uv sync --frozen
-          uv run manage.py check
+          uv run main.py
       - run: rsync -a --delete --exclude=/.git/ --exclude=/.github/ ./ ~/main/
       - run: echo > ~/main/restart.txt
