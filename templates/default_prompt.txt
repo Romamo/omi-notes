@@ -1,4 +1,5 @@
 Extract the item name, width, and height from measurements.
+If no width or height words are mentioned in the text, but two numbers only, then use them as width and height.
 Translate the text to Spanish.
 Convert the units to inches.
 Calculate the area and add it to results.
