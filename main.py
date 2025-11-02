@@ -1,4 +1,5 @@
 import traceback
+from datetime import datetime
 
 from dotenv import load_dotenv
 from google.oauth2.credentials import Credentials
@@ -504,7 +505,7 @@ async def process_segments(payload: TranscriptPayload):
     for item in result.items:
         row = []
         row.append(payload.location or 'unknown')
-        row.append(payload.datetime or payload.datetime.format("YYYY-MM-DD HH:mm"))
+        row.append(datetime.now().strftime('%Y-%m-%d %H:%M'))
 
         if len(columns) == 2:
             columns.extend(item.model_fields.keys())
@@ -529,7 +530,7 @@ async def process_segments(payload: TranscriptPayload):
 # API Endpoints
 
 @app.get("/sheets")
-async def sheets_page2(request: Request, uid: str):
+async def sheets_page(request: Request, uid: str):
     """Serve Google Sheets selection/creation page using template"""
     return templates.TemplateResponse("sheets.html", {"request": request, "uid": uid})
 
@@ -576,6 +577,14 @@ async def get_instructions(uid: str):
     """Retrieve user-defined extraction prompt"""
     prompt = load_user_prompts(uid)
     return {"prompt": prompt}
+@app.get("/api/current-sheet")
+async def get_current_sheet(uid: str):
+    """Retrieve user's current sheet information"""
+    sheet_id = load_user_sheet_ids(uid)
+    if sheet_id:
+        return {"sheet_id": sheet_id}
+    else:
+        return {"sheet_id": None}
 
 @app.get("/oauth/start")
 async def oauth_start(uid: str, force: bool = True):
@@ -659,3 +668,108 @@ async def privacy_policy():
 async def terms_of_service():
     """Serve terms of service page"""
     return templates.TemplateResponse("terms.html", {"request": {}})
+    sheet_id = load_user_sheet_ids(uid)
+
+    if not prompt:
+        raise HTTPException(status_code=400, detail="No instructions found for session")
+    if not credentials:
+        raise HTTPException(status_code=400, detail="No OAuth tokens found for session")
+    if not sheet_id:
+        raise HTTPException(status_code=400, detail="No sheet ID found for session")
+
+    # Add background task
+    background_tasks.add_task(process_segments, payload)
+    return {
+        "status": "accepted",
+        "segments_received": len(payload.segments)
+        }
+
+@app.get("/privacy")
+async def privacy_policy():
+    """Serve privacy policy page"""
+    return templates.TemplateResponse("privacy.html", {"request": {}})
+
+@app.get("/terms")
+async def terms_of_service():
+    """Serve terms of service page"""
+    return templates.TemplateResponse("terms.html", {"request": {}})
+
+    credentials = load_user_tokens(uid)
+    sheet_id = load_user_sheet_ids(uid)
+
+    if not prompt:
+        raise HTTPException(status_code=400, detail="No instructions found for session")
+    if not credentials:
+        raise HTTPException(status_code=400, detail="No OAuth tokens found for session")
+    if not sheet_id:
+        raise HTTPException(status_code=400, detail="No sheet ID found for session")
+
+    # Add background task
+    background_tasks.add_task(process_segments, payload)
+    return {
+        "status": "accepted",
+        "segments_received": len(payload.segments)
+        }
+
+@app.get("/privacy")
+async def privacy_policy():
+    """Serve privacy policy page"""
+    return templates.TemplateResponse("privacy.html", {"request": {}})
+
+@app.get("/terms")
+async def terms_of_service():
+    """Serve terms of service page"""
+    return templates.TemplateResponse("terms.html", {"request": {}})
+
+    sheet_id = load_user_sheet_ids(uid)
+
+    if not prompt:
+        raise HTTPException(status_code=400, detail="No instructions found for session")
+    if not credentials:
+        raise HTTPException(status_code=400, detail="No OAuth tokens found for session")
+    if not sheet_id:
+        raise HTTPException(status_code=400, detail="No sheet ID found for session")
+
+    # Add background task
+    background_tasks.add_task(process_segments, payload)
+    return {
+        "status": "accepted",
+        "segments_received": len(payload.segments)
+        }
+
+@app.get("/privacy")
+async def privacy_policy():
+    """Serve privacy policy page"""
+    return templates.TemplateResponse("privacy.html", {"request": {}})
+
+@app.get("/terms")
+async def terms_of_service():
+    """Serve terms of service page"""
+    return templates.TemplateResponse("terms.html", {"request": {}})
+
+    sheet_id = load_user_sheet_ids(uid)
+
+    if not prompt:
+        raise HTTPException(status_code=400, detail="No instructions found for session")
+    if not credentials:
+        raise HTTPException(status_code=400, detail="No OAuth tokens found for session")
+    if not sheet_id:
+        raise HTTPException(status_code=400, detail="No sheet ID found for session")
+
+    # Add background task
+    background_tasks.add_task(process_segments, payload)
+    return {
+        "status": "accepted",
+        "segments_received": len(payload.segments)
+        }
+
+@app.get("/privacy")
+async def privacy_policy():
+    """Serve privacy policy page"""
+    return templates.TemplateResponse("privacy.html", {"request": {}})
+
+@app.get("/terms")
+async def terms_of_service():
+    """Serve terms of service page"""
+    return templates.TemplateResponse("terms.html", {"request": {}})
+

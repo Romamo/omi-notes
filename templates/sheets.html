@@ -368,6 +368,7 @@
         window.addEventListener('DOMContentLoaded', function() {
             loadCurrentPromptDisplay();
             loadFullPromptDisplay();
+            loadCurrentSheetDisplay();
         });
 
         async function loadCurrentPromptDisplay() {
@@ -398,6 +399,34 @@
                 document.getElementById('prompt-content').textContent = 'Error loading prompt.';
             }
         }
+
+        async function loadCurrentSheetDisplay() {
+            try {
+                const response = await fetch(`/api/current-sheet?uid={{ uid }}`);
+                const data = await response.json();
+
+                if (data.sheet_id) {
+                    const sheetUrl = `https://docs.google.com/spreadsheets/d/${data.sheet_id}`;
+                    const sheetInfo = `
+                        <strong>Sheet ID:</strong> ${data.sheet_id}<br>
+                        <strong>URL:</strong> <a href="${sheetUrl}" target="_blank">${sheetUrl}</a><br>
+                        <em>Click the URL to open your current sheet</em>
+                    `;
+                    document.getElementById('current-sheet-info').innerHTML = sheetInfo;
+                    document.getElementById('current-sheet-display').style.display = 'block';
+                } else {
+                    document.getElementById('current-sheet-display').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading current sheet display:', error);
+                document.getElementById('current-sheet-display').style.display = 'none';
+            }
+        }
+
+        function changeSheet() {
+            document.getElementById('current-sheet-display').style.display = 'none';
+            showOptions();
+        }
     </script>
 </head>
 <body>
@@ -409,6 +438,14 @@
             <div id="prompt-content" style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 10px 0; white-space: pre-wrap; font-family: monospace; font-size: 14px;">Loading prompt...</div>
             <button type="button" class="btn" onclick="showEditPromptForm()">Edit Prompt</button>
             <button type="button" class="btn btn-secondary" onclick="showOptions()">Continue to Sheets Setup</button>
+        </div>
+
+        <div id="current-sheet-display" style="display: none;">
+            <h3>Current Sheet</h3>
+            <div id="current-sheet-content" style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 10px 0;">
+                <div id="current-sheet-info">Loading current sheet...</div>
+                <button type="button" class="btn btn-secondary" onclick="changeSheet()">Change Sheet</button>
+            </div>
         </div>
 
         <div id="options" style="display: none;">
