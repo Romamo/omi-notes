@@ -229,7 +229,7 @@
                     if (response.ok) {
                         const data = await response.json();
                         alert('Sheet selected successfully! You can now use it for storing field notes.');
-                        window.location.href = '/';  // Redirect to home
+                        window.location.href = '/sheets?uid={{ uid }}';  // Redirect to sheets page
                     } else {
                         const error = await response.json();
                         alert('Error selecting sheet: ' + (error.detail || 'Unknown error'));
@@ -274,7 +274,7 @@
                     });
 
                     if (storeResponse.ok) {
-                        window.location.href = '/';  // Redirect to home
+                        window.location.href = '/sheets?uid={{ uid }}';  // Redirect to sheets page
                     } else {
                         alert('Sheet created but failed to store. Please try selecting it manually.');
                     }
@@ -356,7 +356,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     alert('Sheet stored successfully! You can now use it for storing field notes.');
-                    window.location.href = '/';  // Redirect to home
+                    window.location.href = '/sheets?uid={{ uid }}';  // Redirect to sheets page
                 } else {
                     const error = await response.json();
                     alert('Error storing sheet: ' + (error.detail || 'Unknown error'));
