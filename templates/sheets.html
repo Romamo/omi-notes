@@ -157,6 +157,7 @@
             document.getElementById('create-form').style.display = 'none';
             document.getElementById('user-sheets').style.display = 'none';
             document.getElementById('edit-prompt-form').style.display = 'none';
+            document.getElementById('openai-config-form').style.display = 'none';
             document.getElementById('options').style.display = 'block';
         }
 
@@ -369,6 +370,7 @@
             loadCurrentPromptDisplay();
             loadFullPromptDisplay();
             loadCurrentSheetDisplay();
+            loadCurrentOpenAIDisplay();
         });
 
         async function loadCurrentPromptDisplay() {
@@ -423,6 +425,78 @@
             }
         }
 
+        function showOpenAIConfigForm() {
+            document.getElementById('options').style.display = 'none';
+            document.getElementById('openai-config-form').style.display = 'block';
+            loadOpenAIConfig();
+        }
+
+        async function loadOpenAIConfig() {
+            try {
+                const response = await fetch(`/api/openai-config?uid={{ uid }}`);
+                const data = await response.json();
+                document.getElementById('openai-api-key').value = data.api_key || '';
+                document.getElementById('openai-base-url').value = data.base_url || '';
+            } catch (error) {
+                console.error('Error loading OpenAI config:', error);
+                alert('Error loading OpenAI configuration. Please try again.');
+            }
+        }
+
+        async function saveOpenAIConfig() {
+            const apiKey = document.getElementById('openai-api-key').value.trim();
+            const baseUrl = document.getElementById('openai-base-url').value.trim();
+
+            if (!apiKey && !baseUrl) {
+                alert('Please provide at least an API key or base URL');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/openai-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        uid: '{{ uid }}',
+                        api_key: apiKey,
+                        base_url: baseUrl
+                    })
+                });
+
+                if (response.ok) {
+                    alert('OpenAI configuration saved successfully!');
+                    loadCurrentOpenAIDisplay();
+                    showOptions();
+                } else {
+                    const error = await response.json();
+                    alert('Error saving OpenAI config: ' + (error.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving OpenAI config:', error);
+                alert('Error saving OpenAI configuration. Please try again.');
+            }
+        }
+
+        async function loadCurrentOpenAIDisplay() {
+            try {
+                const response = await fetch(`/api/openai-config?uid={{ uid }}`);
+                const data = await response.json();
+                const displayElement = document.getElementById('current-openai-display');
+
+                if (data.api_key) {
+                    const maskedKey = data.api_key.substring(0, 8) + '...';
+                    displayElement.textContent = `API Key: ${maskedKey}`;
+                } else {
+                    displayElement.textContent = 'Configure your OpenAI API key and base URL';
+                }
+            } catch (error) {
+                console.error('Error loading OpenAI display:', error);
+                document.getElementById('current-openai-display').textContent = 'Error loading OpenAI config';
+            }
+        }
+
         function changeSheet() {
             document.getElementById('current-sheet-display').style.display = 'none';
             showOptions();
@@ -437,6 +511,7 @@
             <h3>Current Prompt</h3>
             <div id="prompt-content" style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 10px 0; white-space: pre-wrap; font-family: monospace; font-size: 14px;">Loading prompt...</div>
             <button type="button" class="btn" onclick="showEditPromptForm()">Edit Prompt</button>
+            <button type="button" class="btn" onclick="showOpenAIConfigForm()">Configure OpenAI</button>
             <button type="button" class="btn btn-secondary" onclick="showOptions()">Continue to Sheets Setup</button>
         </div>
 
@@ -452,6 +527,11 @@
             <div class="option" onclick="showEditPromptForm()">
                 <h3>✏️ Edit Prompt</h3>
                 <p id="current-prompt-display">Loading prompt...</p>
+            </div>
+
+            <div class="option" onclick="showOpenAIConfigForm()">
+                <h3>🤖 Configure OpenAI</h3>
+                <p id="current-openai-display">Configure your OpenAI API key and base URL</p>
             </div>
 
             <div class="option" onclick="showCreateForm()">
@@ -494,6 +574,20 @@
                 <textarea id="prompt-text" rows="6" placeholder="Enter your extraction instructions here..."></textarea>
             </div>
             <button type="button" class="btn" onclick="savePrompt()">Save Prompt</button>
+            <button type="button" class="btn btn-secondary" onclick="showOptions()">Back</button>
+        </div>
+
+        <div id="openai-config-form" style="display: none;">
+            <h3>Configure OpenAI</h3>
+            <div class="form-group">
+                <label for="openai-api-key">OpenAI API Key:</label>
+                <input id="openai-api-key" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+                <label for="openai-base-url">OpenAI Base URL (optional):</label>
+                <input type="url" id="openai-base-url" placeholder="https://api.openai.com/v1">
+            </div>
+            <button type="button" class="btn" onclick="saveOpenAIConfig()">Save Configuration</button>
             <button type="button" class="btn btn-secondary" onclick="showOptions()">Back</button>
         </div>
 

@@ -152,7 +152,7 @@ def generate_pydantic_model_with_llm(prompt: str, uid: str):
             logger.error(f"Error loading cached model: {e}")
 
     # Generate new model using LLM
-    llm = get_llm()
+    llm = get_llm(uid)
     if not llm:
         # Fallback to basic model
         return create_fallback_model(prompt_hash)
@@ -305,18 +305,70 @@ def save_user_sheet_ids(uid: str, sheet_id: str):
     with open(file_path, 'w') as f:
         f.write(sheet_id)
 
-# LangChain setup (lazy initialization)
-llm = None
+def load_user_openai_config(uid: str) -> Dict[str, str]:
+    """Load user-specific OpenAI configuration"""
+    config = {}
+    api_key_path = get_user_file_path(uid, "openai_api_key.txt")
+    base_url_path = get_user_file_path(uid, "openai_base_url.txt")
 
-def get_llm():
-    global llm
-    if llm is None and OPENAI_API_KEY:
-        llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0,
-            openai_api_key=OPENAI_API_KEY
-        )
-    return llm
+    if api_key_path.exists():
+        with open(api_key_path, 'r') as f:
+            config['api_key'] = f.read().strip()
+
+    if base_url_path.exists():
+        with open(base_url_path, 'r') as f:
+            config['base_url'] = f.read().strip()
+
+    return config
+
+def save_user_openai_config(uid: str, api_key: str = None, base_url: str = None):
+    """Save user-specific OpenAI configuration"""
+    if api_key:
+        api_key_path = get_user_file_path(uid, "openai_api_key.txt")
+        with open(api_key_path, 'w') as f:
+            f.write(api_key)
+
+    if base_url:
+        base_url_path = get_user_file_path(uid, "openai_base_url.txt")
+        with open(base_url_path, 'w') as f:
+            f.write(base_url)
+
+# LangChain setup (lazy initialization)
+llm_cache = {}
+
+def get_llm(uid: str = None):
+    """Get LLM instance, preferring user-specific config over global config"""
+    cache_key = uid or "global"
+
+    if cache_key not in llm_cache:
+        # Try user-specific config first
+        api_key = None
+        base_url = None
+
+        if uid:
+            user_config = load_user_openai_config(uid)
+            api_key = user_config.get('api_key')
+            base_url = user_config.get('base_url')
+
+        # Fall back to global config if no user config
+        if not api_key:
+            api_key = OPENAI_API_KEY
+            base_url = os.getenv("OPENAI_BASE_URL")
+
+        if api_key:
+            llm_config = {
+                "model": "gpt-4o-mini",
+                "temperature": 0,
+                "openai_api_key": api_key
+            }
+            if base_url:
+                llm_config["base_url"] = base_url
+
+            llm_cache[cache_key] = ChatOpenAI(**llm_config)
+        else:
+            llm_cache[cache_key] = None
+
+    return llm_cache.get(cache_key)
 
 extraction_prompt = ChatPromptTemplate.from_template("""
 You are a field notes assistant.
@@ -348,7 +400,7 @@ def get_extraction_chain(uid: str):
     cache_key = f"{uid}_{prompt_hash}"
 
     if cache_key not in extraction_chains:
-        llm = get_llm()
+        llm = get_llm(uid)
         if llm:
             # Generate model using LLM
             DynamicExtractionResult = generate_pydantic_model_with_llm(prompt, uid)
@@ -606,6 +658,30 @@ async def get_current_sheet(uid: str):
         return {"sheet_id": sheet_id}
     else:
         return {"sheet_id": None}
+
+@app.post("/api/openai-config")
+async def set_openai_config(request: Request):
+    """Store user-specific OpenAI configuration"""
+    data = await request.json()
+    uid = data.get('uid')
+    api_key = data.get('api_key')
+    base_url = data.get('base_url')
+
+    if not uid:
+        raise HTTPException(status_code=400, detail="uid is required")
+
+    if not api_key and not base_url:
+        raise HTTPException(status_code=400, detail="Either api_key or base_url must be provided")
+
+    # Save user-specific OpenAI config
+    save_user_openai_config(uid, api_key=api_key, base_url=base_url)
+    return {"status": "ok"}
+
+@app.get("/api/openai-config")
+async def get_openai_config(uid: str):
+    """Retrieve user-specific OpenAI configuration"""
+    config = load_user_openai_config(uid)
+    return {"api_key": config.get('api_key', ''), "base_url": config.get('base_url', '')}
 
 @app.get("/oauth/start")
 async def oauth_start(uid: str, force: bool = True):
