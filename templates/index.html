@@ -39,27 +39,23 @@
     <div class="container">
         <p>Field Notes turns your Omi wearable into a voice-driven reporting assistant for technicians, real-estate agents, contractors, and field engineers.
 Instead of juggling clipboards, phones, or spreadsheets, just speak your observations, and Omi instantly structures and logs them into Google Sheets — ready for reports, invoices, or client updates.</p>
-        <h2>How to setup</h2>
+        <h2>How to set up</h2>
         <ol>
             <li>Close this window</li>
-            <li>Tap Setup to connect your Google Account and choose Google Sheet to store your data</li>
+            <li>Tap Setup to connect your Google Account, add prompt, Openai API KEY, select Google Sheet to store your data</li>
             <li>Prompt AI to convert your transcripts to data</li>
             <li>Enjoy data in Google Sheet</li>
         </ol>
+        <p>Standalone: <a href="/oauth/start?uid={{ uid }}">click here to set up</a></p>
         <div class="links">
             <a href="/privacy">Privacy Policy</a> |
             <a href="/terms">Terms of Service</a>
         </div>
 
         <h2>Test Transcript Processing</h2>
-        <p>Use this form to test the main flow directly without Omi. Enter a user ID and transcript text to simulate processing.</p>
+        <p>Use this form to test the main flow directly without Omi. The User ID is: <strong>{{ uid }}</strong>. Enter transcript text to simulate processing.</p>
 
         <form id="testForm" class="container" style="margin-top: 20px;">
-            <div style="margin-bottom: 15px;">
-                <label for="uid" style="display: block; margin-bottom: 5px; font-weight: bold;">User ID:</label>
-                <input type="text" id="uid" name="uid" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Enter user ID (e.g., test_user)">
-            </div>
-
             <div style="margin-bottom: 15px;">
                 <label for="transcript" style="display: block; margin-bottom: 5px; font-weight: bold;">Transcript Text:</label>
                 <textarea id="transcript" name="transcript" rows="6" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;" placeholder="Enter transcript text to process..."></textarea>
@@ -75,7 +71,7 @@ Instead of juggling clipboards, phones, or spreadsheets, just speak your observa
         document.getElementById('testForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const uid = document.getElementById('uid').value;
+            const uid = '{{ uid }}';
             const transcript = document.getElementById('transcript').value;
             const resultDiv = document.getElementById('result');
 

@@ -1,6 +1,7 @@
 import asyncio
 import traceback
 from datetime import datetime
+import uuid
 
 from dotenv import load_dotenv
 from google.oauth2.credentials import Credentials
@@ -625,9 +626,15 @@ async def list_user_sheets_api(uid: str):
 
 
 @app.get("/")
-async def homepage():
+async def homepage(uid: str = None):
     """Serve homepage with welcome message"""
-    return templates.TemplateResponse("index.html", {"request": {}})
+    if not uid:
+        # Generate a new UUID if no uid provided
+        uid = str(uuid.uuid4())
+        # Redirect to the same page with the generated uid
+        return RedirectResponse(url=f"/?uid={uid}")
+
+    return templates.TemplateResponse("index.html", {"request": {}, "uid": uid})
 
 # API Endpoints
 
