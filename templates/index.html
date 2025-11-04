@@ -50,6 +50,84 @@ Instead of juggling clipboards, phones, or spreadsheets, just speak your observa
             <a href="/privacy">Privacy Policy</a> |
             <a href="/terms">Terms of Service</a>
         </div>
+
+        <h2>Test Transcript Processing</h2>
+        <p>Use this form to test the main flow directly without Omi. Enter a user ID and transcript text to simulate processing.</p>
+
+        <form id="testForm" class="container" style="margin-top: 20px;">
+            <div style="margin-bottom: 15px;">
+                <label for="uid" style="display: block; margin-bottom: 5px; font-weight: bold;">User ID:</label>
+                <input type="text" id="uid" name="uid" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Enter user ID (e.g., test_user)">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label for="transcript" style="display: block; margin-bottom: 5px; font-weight: bold;">Transcript Text:</label>
+                <textarea id="transcript" name="transcript" rows="6" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;" placeholder="Enter transcript text to process..."></textarea>
+            </div>
+
+            <button type="submit" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Submit Transcript</button>
+        </form>
+
+        <div id="result" style="margin-top: 20px; padding: 10px; border-radius: 4px; display: none;"></div>
     </div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const uid = document.getElementById('uid').value;
+            const transcript = document.getElementById('transcript').value;
+            const resultDiv = document.getElementById('result');
+
+            // Clear previous result
+            resultDiv.style.display = 'none';
+            resultDiv.innerHTML = '';
+
+            try {
+                // Split transcript into segments (simulate how Omi might send it)
+                const segments = transcript.split(/[.!?]+/).filter(s => s.trim().length > 0).map((text, index) => ({
+                    id: `segment_${index}`,
+                    text: text.trim()
+                }));
+
+                const payload = {
+                    session_id: uid,
+                    segments: segments,
+                    location: null,
+                    datetime: new Date().toISOString()
+                };
+
+                const response = await fetch('/transcript', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.style.backgroundColor = '#d4edda';
+                    resultDiv.style.border = '1px solid #c3e6cb';
+                    resultDiv.style.color = '#155724';
+                    resultDiv.innerHTML = `<strong>Success!</strong> Transcript submitted. Status: ${data.status}. Segments received: ${data.segments_received}. Processing will complete in 10 seconds.`;
+                } else {
+                    resultDiv.style.backgroundColor = '#f8d7da';
+                    resultDiv.style.border = '1px solid #f5c6cb';
+                    resultDiv.style.color = '#721c24';
+                    resultDiv.innerHTML = `<strong>Error:</strong> ${data.detail || 'Unknown error'}`;
+                }
+
+            } catch (error) {
+                resultDiv.style.backgroundColor = '#f8d7da';
+                resultDiv.style.border = '1px solid #f5c6cb';
+                resultDiv.style.color = '#721c24';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+
+            resultDiv.style.display = 'block';
+        });
+    </script>
 </body>
 </html>

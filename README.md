@@ -14,6 +14,15 @@ Instead of juggling clipboards, phones, or spreadsheets, just speak your observa
 - **RESTful API**: FastAPI-based backend with comprehensive endpoints
 - **Background Processing**: Asynchronous transcript processing for scalability
 - **CLI Tools**: Command-line utilities for token management
+- **Standalone Demo**: Test the application with a provided OpenAI key on the main page
+
+## Recent Updates
+
+### November 4, 2025
+- Added standalone demo on main page with OpenAI key provided by user.
+  - How to run standalone demo:
+    1. Open with any uid: http://127.0.0.1:8000/oauth/start?uid=123
+    2. Submit the form with the same uid: http://127.0.0.1:8000/
 
 ## Installation
 
